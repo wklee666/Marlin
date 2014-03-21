@@ -157,6 +157,8 @@ Implemented G Codes:
 *  G28 - Home all Axis
 *  G29 - Detailed Z-Probe, probes the bed at 3 points.  You must de at the home position for this to work correctly.
 *  G30 - Single Z Probe, probes bed at current XY location.
+*  G31 - Auto Calibrate endstop, if parameter A exist, run until (max 5) all endstop_adj have same value
+*  G32 - Report endstop pos (include 0,0)
 *  G90 - Use Absolute Coordinates
 *  G91 - Use Relative Coordinates
 *  G92 - Set current position to cordinates given
