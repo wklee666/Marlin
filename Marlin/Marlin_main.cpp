@@ -78,6 +78,8 @@
 // G28 - Home all Axis
 // G29 - Detailed Z-Probe, probes the bed at 3 points.  You must de at the home position for this to work correctly.
 // G30 - Single Z Probe, probes bed at current XY location.
+// G31 - Auto Calibrate endstop, if parameter A exist, run until (max 5) all endstop_adj have same value
+// G32 - Report endstop pos (include 0,0)
 // G90 - Use Absolute Coordinates
 // G91 - Use Relative Coordinates
 // G92 - Set current position to cordinates given
@@ -1855,18 +1857,18 @@ void process_commands()
 #endif // ENABLE_AUTO_BED_LEVELING
 
     case 31: // G30 XYZ Tower automatic Z probe.
-      int iterations, loopcount ;
+      int loopcount, iterations ;
       boolean allequal ;
       saved_feedrate = feedrate;
       saved_feedmultiply = feedmultiply;
       feedmultiply = 100;
-      allequal = true ;
-      iterations = 5;
+      allequal = false ;
+      iterations = 5;   
       loopcount = 1 ;
       
       SERIAL_ECHOLN("Run G31 now");
-	  if(code_seen('A')) allequal = false ;
-	  while((allequal == false) and (loopcount <= iterations)) {
+      if(not code_seen('A')) loopcount = 5 ;
+      while((allequal == false) and (loopcount <= iterations)) {
 		SERIAL_ECHO("iterations : ");
 		SERIAL_ECHOLN(loopcount);
 		home_delta_axis() ;
