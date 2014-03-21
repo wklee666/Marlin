@@ -185,6 +185,7 @@ CardReader card;
 #endif
 float homing_feedrate[] = HOMING_FEEDRATE;
 bool axis_relative_modes[] = AXIS_RELATIVE_MODES;
+int ori_adc = 0 ;
 int feedmultiply=100; //100->1 200->2
 int saved_feedmultiply;
 int extrudemultiply=100; //100->1 200->2
@@ -199,6 +200,7 @@ float volumetric_multiplier[EXTRUDERS] = {1.0
 float current_position[NUM_AXIS] = { 0.0, 0.0, 0.0, 0.0 };
 float add_homeing[3]={0,0,0};
 #ifdef DELTA
+float xyzendstopdiff[4] = {0,0,0,0};
 float endstop_adj[3]={0,0,0};
 #endif
 float min_pos[3] = { X_MIN_POS, Y_MIN_POS, Z_MIN_POS };
@@ -259,6 +261,7 @@ float bed_level[ACCURATE_BED_LEVELING_POINTS][ACCURATE_BED_LEVELING_POINTS];
 const char axis_codes[NUM_AXIS] = {'X', 'Y', 'Z', 'E'};
 static float destination[NUM_AXIS] = {  0.0, 0.0, 0.0, 0.0};
 static float offset[3] = {0.0, 0.0, 0.0};
+static float default_xyztower_probe_pos[4][2] = DEFAULT_XYZTOWER_PROBE_POS ;
 static bool home_all_axis = true;
 static float feedrate = 1500.0, next_feedrate, saved_feedrate;
 static long gcode_N, gcode_LastN, Stopped_gcode_LastN = 0;
@@ -883,8 +886,8 @@ static void set_bed_level_equation(float z_at_xLeft_yFront, float z_at_xRight_yF
 }
 #endif // ACCURATE_BED_LEVELING
 
-bool touching_print_surface() {
-  return rawBedSample() < 800; // ADC goes from 0 to 1023
+bool touching_print_surface(int chk_adc) {
+  return rawBedSample() < chk_adc ; // ADC goes from 0 to 1023
 }
 
 static void run_z_probe() {
@@ -892,15 +895,18 @@ static void run_z_probe() {
 
 #ifdef DELTA
   #ifdef FSR_BED_LEVELING
+    int fsr_sensitivity = FSR_SENSITIVITY;
     feedrate = 600; //mm/min
     float step = 0.05;
     int direction = -1;
-    while (touching_print_surface()) {
+    ori_adc = rawBedSample() ;
+    while (touching_print_surface(ori_adc - fsr_sensitivity)) {
       destination[Z_AXIS] -= step * direction;
       prepare_move_raw();
       st_synchronize();
     }
-    while (!touching_print_surface()) {
+    ori_adc = rawBedSample() ;
+    while (!touching_print_surface(ori_adc - fsr_sensitivity)) {
       destination[Z_AXIS] += step * direction;
       prepare_move_raw();
       st_synchronize();
@@ -908,7 +914,8 @@ static void run_z_probe() {
     while (step > 0.005) {
       step *= 0.8;
       feedrate *= 0.8;
-      direction = touching_print_surface() ? 1 : -1;
+      ori_adc = rawBedSample() ;
+      direction = touching_print_surface(ori_adc - fsr_sensitivity) ? 1 : -1;
       destination[Z_AXIS] += step * direction;
       prepare_move_raw();
       st_synchronize();
@@ -1101,11 +1108,11 @@ static float probe_pt(float x, float y, float z_before) {
 
   SERIAL_PROTOCOLPGM(MSG_BED);
   SERIAL_PROTOCOLPGM(" x: ");
-  SERIAL_PROTOCOL(x);
+  SERIAL_PROTOCOL_F(x,4);
   SERIAL_PROTOCOLPGM(" y: ");
-  SERIAL_PROTOCOL(y);
+  SERIAL_PROTOCOL_F(y,4);
   SERIAL_PROTOCOLPGM(" z: ");
-  SERIAL_PROTOCOL(measured_z);
+  SERIAL_PROTOCOL_F(measured_z,4);
 #ifdef FSR_BED_LEVELING
   SERIAL_PROTOCOLPGM(" FSR: ");
   SERIAL_PROTOCOL(rawBedSample());
@@ -1228,10 +1235,12 @@ static void homeaxis(int axis) {
 #ifdef DELTA
     // retrace by the amount specified in endstop_adj
     if (endstop_adj[axis] * axis_home_dir < 0) {
+      enable_endstops(false);
       plan_set_position(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS]);
       destination[axis] = endstop_adj[axis];
       plan_buffer_line(destination[X_AXIS], destination[Y_AXIS], destination[Z_AXIS], destination[E_AXIS], feedrate/60, active_extruder);
       st_synchronize();
+      enable_endstops(true);
     }
 #endif
     axis_is_at_home(axis);
@@ -1256,6 +1265,105 @@ static void homeaxis(int axis) {
 void refresh_cmd_timeout(void)
 {
   previous_millis_cmd = millis();
+}
+//kwong
+void endstop_print_surface_cal(float z_offset, boolean viewonly) {
+	float smallestv=10.0 ;
+	float largestv=-99;
+    float afteradjusttop=-99.0 ;
+	float difft=0.0;
+	int z_before=20 ;
+    for (int xypos = 0; xypos <= 3; xypos++) {
+		destination[X_AXIS] = default_xyztower_probe_pos[xypos][0] - X_PROBE_OFFSET_FROM_EXTRUDER ;
+		destination[Y_AXIS] = default_xyztower_probe_pos[xypos][1] - Y_PROBE_OFFSET_FROM_EXTRUDER ;
+		
+		xyzendstopdiff[xypos] = - probe_pt(destination[X_AXIS], destination[Y_AXIS], z_before) + z_offset ;
+		SERIAL_ECHOLN("") ;
+		SERIAL_PROTOCOL_F(default_xyztower_probe_pos[xypos][0], 4);
+		SERIAL_ECHO(",");
+		SERIAL_PROTOCOL_F(default_xyztower_probe_pos[xypos][1], 4);
+		SERIAL_ECHO(" : ");
+		SERIAL_PROTOCOL_F(xyzendstopdiff[xypos],2) ;
+		SERIAL_ECHOLN("");
+        if (xypos <= 2) {
+		  smallestv=min(smallestv,xyzendstopdiff[xypos]) ;
+		  largestv=max(largestv,xyzendstopdiff[xypos]) ;
+        }
+	}
+ 	  SERIAL_ECHO("min : ");
+	  SERIAL_PROTOCOL_F(smallestv,2) ;
+	  SERIAL_ECHOLN("") ;
+      if (!viewonly ) {
+	  for (int axis = 0; axis <= 2; axis++) {
+       	    SERIAL_PROTOCOLPGM(" Axis : "); 
+      	    SERIAL_PROTOCOL_F(axis,1) ;
+            SERIAL_PROTOCOLPGM(", Endstop changed from : ");
+            SERIAL_PROTOCOL_F(endstop_adj[axis],2);
+            SERIAL_PROTOCOLPGM(" to : ");
+            endstop_adj[axis] = endstop_adj[axis] -  xyzendstopdiff[axis] ;
+            afteradjusttop=max(afteradjusttop,endstop_adj[axis]) ;
+        	SERIAL_PROTOCOL_F(endstop_adj[axis],2);
+            SERIAL_ECHOLN("");
+           }
+         
+		if (afteradjusttop > 0) {
+		    SERIAL_ECHOLN("Ooops... endstop > 0, means that we can't adjust it as endstop offset only can be negative value, we have to lower all endstop, now adjusted to ");
+		    for (int axis = 0; axis <= 2; axis++) {
+			    endstop_adj[axis] = endstop_adj[axis] - afteradjusttop ; // lower the endstop to he top-est one 
+                SERIAL_PROTOCOL_F(endstop_adj[axis],2);  
+                SERIAL_ECHO(",");
+	        }
+			SERIAL_ECHOLN("") ;
+        }
+      }
+}
+
+void home_delta_axis() {
+    saved_feedrate = feedrate;
+    saved_feedmultiply = feedmultiply;
+    feedmultiply = 100;
+    previous_millis_cmd = millis();
+
+    enable_endstops(true);
+
+    for(int8_t i=0; i < NUM_AXIS; i++) {
+      destination[i] = current_position[i];
+      }
+    feedrate = 0.0;
+    // Move all carriages up together until the first endstop is hit.
+    current_position[X_AXIS] = 0;
+    current_position[Y_AXIS] = 0;
+    current_position[Z_AXIS] = 0;
+    plan_set_position(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS]);
+
+    destination[X_AXIS] = 3 * Z_MAX_LENGTH;
+    destination[Y_AXIS] = 3 * Z_MAX_LENGTH;
+    destination[Z_AXIS] = 3 * Z_MAX_LENGTH;
+    feedrate = 1.732 * homing_feedrate[X_AXIS];
+    plan_buffer_line(destination[X_AXIS], destination[Y_AXIS], destination[Z_AXIS], destination[E_AXIS], feedrate/60, active_extruder);
+    st_synchronize();
+    endstops_hit_on_purpose();
+
+    current_position[X_AXIS] = destination[X_AXIS];
+    current_position[Y_AXIS] = destination[Y_AXIS];
+    current_position[Z_AXIS] = destination[Z_AXIS];
+
+    // take care of back off and rehome now we are all at the top
+    HOMEAXIS(X);
+    HOMEAXIS(Y);
+    HOMEAXIS(Z);
+
+    calculate_delta(current_position);
+    plan_set_position(delta[X_AXIS], delta[Y_AXIS], delta[Z_AXIS], current_position[E_AXIS]);   
+
+    #ifdef ENDSTOPS_ONLY_FOR_HOMING
+       enable_endstops(false);
+    #endif
+
+    feedrate = saved_feedrate;
+    feedmultiply = saved_feedmultiply;
+    previous_millis_cmd = millis();
+    endstops_hit_on_purpose(); 
 }
 
 void process_commands()
@@ -1718,28 +1826,87 @@ void process_commands()
         {
             engage_z_probe(); // Engage Z Servo endstop if available
 
-            st_synchronize();
             // TODO: make sure the bed_level_rotation_matrix is identity or the planner will get set incorectly
             setup_for_endstop_move();
 
             feedrate = homing_feedrate[Z_AXIS];
 
+			do_blocking_move_to(0, 0, Z_RAISE_BEFORE_PROBING);
+			st_synchronize();
+
             run_z_probe();
             SERIAL_PROTOCOLPGM(MSG_BED);
             SERIAL_PROTOCOLPGM(" X: ");
-            SERIAL_PROTOCOL(current_position[X_AXIS]);
+            SERIAL_PROTOCOL_F(current_position[X_AXIS],3);
             SERIAL_PROTOCOLPGM(" Y: ");
-            SERIAL_PROTOCOL(current_position[Y_AXIS]);
+            SERIAL_PROTOCOL_F(current_position[Y_AXIS],3);
             SERIAL_PROTOCOLPGM(" Z: ");
-            SERIAL_PROTOCOL(current_position[Z_AXIS]);
+            SERIAL_PROTOCOL_F(current_position[Z_AXIS],3);
             SERIAL_PROTOCOLPGM("\n");
 
+			do_blocking_move_to(0, 0, Z_RAISE_AFTER_PROBING);
+			st_synchronize();
+			
             clean_up_after_endstop_move();
 
             retract_z_probe(); // Retract Z Servo endstop if available
         }
         break;
 #endif // ENABLE_AUTO_BED_LEVELING
+
+    case 31: // G30 XYZ Tower automatic Z probe.
+      int iterations, loopcount ;
+      boolean allequal ;
+      saved_feedrate = feedrate;
+      saved_feedmultiply = feedmultiply;
+      feedmultiply = 100;
+      allequal = true ;
+      iterations = 5;
+      loopcount = 1 ;
+      
+      SERIAL_ECHOLN("Run G31 now");
+	  if(code_seen('A')) allequal = false ;
+	  while((allequal == false) and (loopcount <= iterations)) {
+		SERIAL_ECHO("iterations : ");
+		SERIAL_ECHOLN(loopcount);
+		home_delta_axis() ;
+		endstop_print_surface_cal(Z_PROBE_OFFSET_FROM_EXTRUDER +
+			(code_seen(axis_codes[Z_AXIS]) ? code_value() : 0.0),false);
+		allequal = ((endstop_adj[0] ==  endstop_adj[1]) and (endstop_adj[1]== endstop_adj[2]))  ;
+		loopcount ++ ;
+		}
+
+      feedrate = saved_feedrate;
+      feedmultiply = saved_feedmultiply;
+      previous_millis_cmd = millis();
+      endstops_hit_on_purpose();
+
+      do_blocking_move_to(MANUAL_X_HOME_POS, MANUAL_Y_HOME_POS, Z_RAISE_AFTER_PROBING);
+      st_synchronize();
+
+      break;
+      
+    case 32: // G30 XYZ Tower automatic Z probe.
+      saved_feedrate = feedrate;
+      saved_feedmultiply = feedmultiply;
+      feedmultiply = 100;
+      SERIAL_ECHOLN("Run G32 now");
+ //     deploy_z_probe();
+	  endstop_print_surface_cal(Z_PROBE_OFFSET_FROM_EXTRUDER +
+		(code_seen(axis_codes[Z_AXIS]) ? code_value() : 0.0),true);
+     // probexyz_print_surface(z_probe_offset[Z_AXIS] +
+	 //	(code_seen(axis_codes[Z_AXIS]) ? code_value() : 0.0), true);
+//      retract_z_probe();
+
+      feedrate = saved_feedrate;
+      feedmultiply = saved_feedmultiply;
+      previous_millis_cmd = millis();
+      endstops_hit_on_purpose();
+//	  SERIAL_PROTOCOLPGM("G30 Finished");
+            do_blocking_move_to(MANUAL_X_HOME_POS, MANUAL_Y_HOME_POS, Z_RAISE_AFTER_PROBING);
+            st_synchronize();
+      break;
+	  
     case 90: // G90
       relative_mode = false;
       break;

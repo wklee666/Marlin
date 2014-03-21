@@ -16,7 +16,7 @@
 // startup. Implementation of an idea by Prof Braino to inform user that any changes made to this
 // build by the user have been successfully uploaded into firmware.
 #define STRING_VERSION_CONFIG_H __DATE__ " " __TIME__ // build date and time
-#define STRING_CONFIG_H_AUTHOR "(jcrocholl, Mini Kossel)" // Who made the changes.
+#define STRING_CONFIG_H_AUTHOR "Mini Kossel - FSR with G31 endstop Cal" // Who made the changes.
 
 // SERIAL_PORT selects which serial port should be used for communication with the host.
 // This allows the connection of wireless adapters (for instance) to non-default port pins.
@@ -72,7 +72,7 @@
 // 21 = Elefu Ra Board (v3)
 
 #ifndef MOTHERBOARD
-#define MOTHERBOARD 33
+#define MOTHERBOARD 81
 #endif
 
 // Define this to set a custom name for your generic Mendel,
@@ -103,10 +103,10 @@
 // Make delta curves from many straight lines (linear interpolation).
 // This is a trade-off between visible corners (not enough segments)
 // and processor overload (too many expensive sqrt calls).
-#define DELTA_SEGMENTS_PER_SECOND 160
+#define DELTA_SEGMENTS_PER_SECOND 200
 
 // Center-to-center distance of the holes in the diagonal push rods.
-#define DELTA_DIAGONAL_ROD 186.0 // mm
+#define DELTA_DIAGONAL_ROD 213.65 // mm
 
 // Horizontal offset from middle of printer to smooth rod center.
 #define DELTA_SMOOTH_ROD_OFFSET 128.0 // mm
@@ -118,10 +118,12 @@
 #define DELTA_CARRIAGE_OFFSET 19.5 // mm
 
 // Horizontal distance bridged by diagonal push rods when effector is centered.
-#define DELTA_RADIUS (DELTA_SMOOTH_ROD_OFFSET-DELTA_EFFECTOR_OFFSET-DELTA_CARRIAGE_OFFSET)
+//#define DELTA_RADIUS (DELTA_SMOOTH_ROD_OFFSET-DELTA_EFFECTOR_OFFSET-DELTA_CARRIAGE_OFFSET)
+// my kossel Correct Val
+#define DELTA_RADIUS 105.89
 
 // Print surface diameter/2 minus unreachable space (avoid collisions with vertical towers).
-#define DELTA_PRINTABLE_RADIUS 70.0
+#define DELTA_PRINTABLE_RADIUS 80.0
 
 // Effective X/Y positions of the three vertical towers.
 #define SIN_60 0.8660254037844386
@@ -132,6 +134,8 @@
 #define DELTA_TOWER2_Y -COS_60*DELTA_RADIUS
 #define DELTA_TOWER3_X 0.0 // back middle tower
 #define DELTA_TOWER3_Y DELTA_RADIUS
+
+#define DEFAULT_XYZTOWER_PROBE_POS   {{-70, -45},{70, -45},{0, 80},{0,0}}
 
 // Diagonal rod squared
 #define DELTA_DIAGONAL_ROD_2 pow(DELTA_DIAGONAL_ROD,2)
@@ -376,7 +380,7 @@ const bool Z_MAX_ENDSTOP_INVERTING = false; // set to true to invert the logic o
 #define ENABLE_AUTO_BED_LEVELING // Delete the comment to enable (remove // at the start of the line)
 
 #ifdef ENABLE_AUTO_BED_LEVELING
-
+  
   // these are the positions on the bed to do the probing
   #define DELTA_PROBABLE_RADIUS (DELTA_PRINTABLE_RADIUS-10)
   #define LEFT_PROBE_BED_POSITION -DELTA_PRINTABLE_RADIUS
@@ -387,15 +391,15 @@ const bool Z_MAX_ENDSTOP_INVERTING = false; // set to true to invert the logic o
   // these are the offsets to the probe relative to the extruder tip (Hotend - Probe)
   #define X_PROBE_OFFSET_FROM_EXTRUDER 0.0
   #define Y_PROBE_OFFSET_FROM_EXTRUDER 0.0
-  #define Z_PROBE_OFFSET_FROM_EXTRUDER 0.1  // Increase this if the first layer is too thin.
+  #define Z_PROBE_OFFSET_FROM_EXTRUDER 0.08  // Increase this if the first layer is too thin.
 
   #define Z_RAISE_BEFORE_HOMING 4       // (in mm) Raise Z before homing (G28) for Probe Clearance.
                                         // Be sure you have this distance over your Z_MAX_POS in case
 
   #define XY_TRAVEL_SPEED 8000         // X and Y axis travel speed between probes, in mm/min
 
-  #define Z_RAISE_BEFORE_PROBING 5  //How much the extruder will be raised before traveling to the first probing point.
-  #define Z_RAISE_BETWEEN_PROBINGS 1  //How much the extruder will be raised when traveling from between next probing points
+  #define Z_RAISE_BEFORE_PROBING 15  //How much the extruder will be raised before traveling to the first probing point.
+  #define Z_RAISE_BETWEEN_PROBINGS 3  //How much the extruder will be raised when traveling from between next probing points
   #define Z_RAISE_AFTER_PROBING 50  //How much the extruder will be raised after the last probing point.
 
 
@@ -442,6 +446,8 @@ const bool Z_MAX_ENDSTOP_INVERTING = false; // set to true to invert the logic o
   // Force Sensing Resistors under the print surface, wired to heated bed thermistor input.
   // Autolevel by measuring how much the hotend is pushing down, without separate Z probe.
   #define FSR_BED_LEVELING
+  #define FSR_SENSITIVITY 20
+  
 #endif
 
 
@@ -453,7 +459,7 @@ const bool Z_MAX_ENDSTOP_INVERTING = false; // set to true to invert the logic o
 // For deltabots this means top and center of the Cartesian print volume.
 #define MANUAL_X_HOME_POS 0
 #define MANUAL_Y_HOME_POS 0
-#define MANUAL_Z_HOME_POS 210  // For delta: Distance between nozzle and print surface after homing.
+#define MANUAL_Z_HOME_POS 245  // For delta: Distance between nozzle and print surface after homing.
 
 //// MOVEMENT SETTINGS
 #define NUM_AXIS 4 // The axis order in all axis related arrays is X, Y, Z, E
@@ -467,7 +473,7 @@ const bool Z_MAX_ENDSTOP_INVERTING = false; // set to true to invert the logic o
 #define XYZ_PULLEY_TEETH 17
 #define XYZ_STEPS (XYZ_FULL_STEPS_PER_ROTATION * XYZ_MICROSTEPS / double(XYZ_BELT_PITCH) / double(XYZ_PULLEY_TEETH))
 
-#define DEFAULT_AXIS_STEPS_PER_UNIT   {XYZ_STEPS, XYZ_STEPS, XYZ_STEPS, 100}
+#define DEFAULT_AXIS_STEPS_PER_UNIT   {100, 100, 100, 452.06}
 #define DEFAULT_MAX_FEEDRATE          {200, 200, 200, 200}    // (mm/sec)
 #define DEFAULT_MAX_ACCELERATION      {9000,9000,9000,9000}    // X, Y, Z, E maximum start speed for accelerated moves. E default values are good for skeinforge 40+, for older versions raise them a lot.
 
@@ -495,10 +501,10 @@ const bool Z_MAX_ENDSTOP_INVERTING = false; // set to true to invert the logic o
 // M501 - reads parameters from EEPROM (if you need reset them after you changed them temporarily).
 // M502 - reverts to the default "factory settings".  You still need to store them in EEPROM afterwards if you want to.
 //define this to enable EEPROM support
-//#define EEPROM_SETTINGS
+#define EEPROM_SETTINGS
 //to disable EEPROM Serial responses and decrease program space by ~1700 byte: comment this out:
 // please keep turned on if you can.
-//#define EEPROM_CHITCHAT
+#define EEPROM_CHITCHAT
 
 // Preheat Constants
 #define PLA_PREHEAT_HOTEND_TEMP 180
