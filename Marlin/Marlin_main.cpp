@@ -188,6 +188,7 @@ CardReader card;
 float homing_feedrate[] = HOMING_FEEDRATE;
 bool axis_relative_modes[] = AXIS_RELATIVE_MODES;
 int ori_adc = 0 ;
+int fsr_sensitivity = FSR_SENSITIVITY;
 int feedmultiply=100; //100->1 200->2
 int saved_feedmultiply;
 int extrudemultiply=100; //100->1 200->2
@@ -897,10 +898,12 @@ static void run_z_probe() {
 
 #ifdef DELTA
   #ifdef FSR_BED_LEVELING
-    int fsr_sensitivity = FSR_SENSITIVITY;
+    
     feedrate = 600; //mm/min
     float step = 0.05;
     int direction = -1;
+    SERIAL_ECHO("FSR SENSITIVITY:") ;
+    SERIAL_ECHOLN(fsr_sensitivity);
     ori_adc = rawBedSample() ;
     while (touching_print_surface(ori_adc - fsr_sensitivity)) {
       destination[Z_AXIS] -= step * direction;
@@ -1269,33 +1272,40 @@ void refresh_cmd_timeout(void)
   previous_millis_cmd = millis();
 }
 //kwong
-void endstop_print_surface_cal(float z_offset, boolean viewonly) {
-	float smallestv=10.0 ;
-	float largestv=-99;
+boolean endstop_print_surface_cal(float z_offset, boolean viewonly) {
+    float smallestv=10.0 ;
+    float largestv=-99;
     float afteradjusttop=-99.0 ;
-	float difft=0.0;
-	int z_before=20 ;
+    float difft=0.0;
+    int z_before=40 ;
+    boolean isallequal = false ;
+    
     for (int xypos = 0; xypos <= 3; xypos++) {
-		destination[X_AXIS] = default_xyztower_probe_pos[xypos][0] - X_PROBE_OFFSET_FROM_EXTRUDER ;
+	destination[X_AXIS] = default_xyztower_probe_pos[xypos][0] - X_PROBE_OFFSET_FROM_EXTRUDER ;
 		destination[Y_AXIS] = default_xyztower_probe_pos[xypos][1] - Y_PROBE_OFFSET_FROM_EXTRUDER ;
 		
-		xyzendstopdiff[xypos] = - probe_pt(destination[X_AXIS], destination[Y_AXIS], z_before) + z_offset ;
-		SERIAL_ECHOLN("") ;
-		SERIAL_PROTOCOL_F(default_xyztower_probe_pos[xypos][0], 4);
-		SERIAL_ECHO(",");
-		SERIAL_PROTOCOL_F(default_xyztower_probe_pos[xypos][1], 4);
-		SERIAL_ECHO(" : ");
-		SERIAL_PROTOCOL_F(xyzendstopdiff[xypos],2) ;
-		SERIAL_ECHOLN("");
+	xyzendstopdiff[xypos] = - probe_pt(destination[X_AXIS], destination[Y_AXIS], z_before) + z_offset ;
+	SERIAL_ECHOLN("") ;
+	SERIAL_PROTOCOL_F(default_xyztower_probe_pos[xypos][0], 4);
+	SERIAL_ECHO(",");
+	SERIAL_PROTOCOL_F(default_xyztower_probe_pos[xypos][1], 4);
+	SERIAL_ECHO(" : ");
+	SERIAL_PROTOCOL_F(xyzendstopdiff[xypos],2) ;
+	SERIAL_ECHOLN("");
         if (xypos <= 2) {
 		  smallestv=min(smallestv,xyzendstopdiff[xypos]) ;
 		  largestv=max(largestv,xyzendstopdiff[xypos]) ;
-        }
+          }
 	}
- 	  SERIAL_ECHO("min : ");
-	  SERIAL_PROTOCOL_F(smallestv,2) ;
-	  SERIAL_ECHOLN("") ;
-      if (!viewonly ) {
+
+        SERIAL_ECHO("min : ");
+        SERIAL_PROTOCOL_F(smallestv,2) ;
+	SERIAL_ECHOLN("")  ;
+	if ( (xyzendstopdiff[0] == xyzendstopdiff[1] ) and (xyzendstopdiff[1] == xyzendstopdiff[2]) ) {
+		SERIAL_ECHOLN(" All EQUAL, PERFECT !! ") ;
+		isallequal = true ;
+		}
+      if (!viewonly and !isallequal) {
 	  for (int axis = 0; axis <= 2; axis++) {
        	    SERIAL_PROTOCOLPGM(" Axis : "); 
       	    SERIAL_PROTOCOL_F(axis,1) ;
@@ -1304,7 +1314,7 @@ void endstop_print_surface_cal(float z_offset, boolean viewonly) {
             SERIAL_PROTOCOLPGM(" to : ");
             endstop_adj[axis] = endstop_adj[axis] -  xyzendstopdiff[axis] ;
             afteradjusttop=max(afteradjusttop,endstop_adj[axis]) ;
-        	SERIAL_PROTOCOL_F(endstop_adj[axis],2);
+            SERIAL_PROTOCOL_F(endstop_adj[axis],2);
             SERIAL_ECHOLN("");
            }
          
@@ -1315,9 +1325,10 @@ void endstop_print_surface_cal(float z_offset, boolean viewonly) {
                 SERIAL_PROTOCOL_F(endstop_adj[axis],2);  
                 SERIAL_ECHO(",");
 	        }
-			SERIAL_ECHOLN("") ;
+		SERIAL_ECHOLN("") ;
         }
       }
+      return isallequal ;
 }
 
 void home_delta_axis() {
@@ -1867,25 +1878,22 @@ void process_commands()
       loopcount = 1 ;
       
       SERIAL_ECHOLN("Run G31 now");
+      home_delta_axis() ;
+      
       if(not code_seen('A')) loopcount = 5 ;
-      while((allequal == false) and (loopcount <= iterations)) {
+      while((loopcount <= iterations) and !endstop_print_surface_cal(Z_PROBE_OFFSET_FROM_EXTRUDER +
+			(code_seen(axis_codes[Z_AXIS]) ? code_value() : 0.0),false) ) 
+		{
+                home_delta_axis() ;
 		SERIAL_ECHO("iterations : ");
 		SERIAL_ECHOLN(loopcount);
-		home_delta_axis() ;
-		endstop_print_surface_cal(Z_PROBE_OFFSET_FROM_EXTRUDER +
-			(code_seen(axis_codes[Z_AXIS]) ? code_value() : 0.0),false);
-		allequal = ((endstop_adj[0] ==  endstop_adj[1]) and (endstop_adj[1]== endstop_adj[2]))  ;
 		loopcount ++ ;
 		}
-
+      home_delta_axis() ;
       feedrate = saved_feedrate;
       feedmultiply = saved_feedmultiply;
       previous_millis_cmd = millis();
-      endstops_hit_on_purpose();
-
-      do_blocking_move_to(MANUAL_X_HOME_POS, MANUAL_Y_HOME_POS, Z_RAISE_AFTER_PROBING);
-      st_synchronize();
-
+ 
       break;
       
     case 32: // G30 XYZ Tower automatic Z probe.
@@ -1894,8 +1902,9 @@ void process_commands()
       feedmultiply = 100;
       SERIAL_ECHOLN("Run G32 now");
  //     deploy_z_probe();
-	  endstop_print_surface_cal(Z_PROBE_OFFSET_FROM_EXTRUDER +
-		(code_seen(axis_codes[Z_AXIS]) ? code_value() : 0.0),true);
+	 endstop_print_surface_cal(Z_PROBE_OFFSET_FROM_EXTRUDER +
+		(code_seen(axis_codes[Z_AXIS]) ? code_value() : 0.0),true)  ;
+			
      // probexyz_print_surface(z_probe_offset[Z_AXIS] +
 	 //	(code_seen(axis_codes[Z_AXIS]) ? code_value() : 0.0), true);
 //      retract_z_probe();
@@ -2637,6 +2646,9 @@ void process_commands()
       break;
     #ifdef DELTA
     case 666: // M666 set delta endstop adjustemnt
+      if (code_seen('S')) {
+          fsr_sensitivity = code_value();
+      }    
       for(int8_t i=0; i < 3; i++)
       {
         if(code_seen(axis_codes[i])) endstop_adj[i] = code_value();
