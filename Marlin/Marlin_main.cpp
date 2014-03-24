@@ -902,6 +902,7 @@ static void run_z_probe() {
     feedrate = 600; //mm/min
     float step = 0.05;
     int direction = -1;
+    int fine_fsr ;
     SERIAL_ECHO("FSR SENSITIVITY:") ;
     SERIAL_ECHOLN(fsr_sensitivity);
     ori_adc = rawBedSample() ;
@@ -910,19 +911,26 @@ static void run_z_probe() {
       prepare_move_raw();
       st_synchronize();
     }
-    ori_adc = rawBedSample() ;
     while (!touching_print_surface(ori_adc - fsr_sensitivity)) {
       destination[Z_AXIS] += step * direction;
       prepare_move_raw();
       st_synchronize();
     }
+
+    fine_fsr = fsr_sensitivity ;
     while (step > 0.005) {
       step *= 0.8;
       feedrate *= 0.8;
-      direction = touching_print_surface(ori_adc - fsr_sensitivity) ? 1 : -1;
+      direction = touching_print_surface(ori_adc - fine_fsr) ? 1 : -1;
       destination[Z_AXIS] += step * direction;
+//      SERIAL_ECHO("Fine FSR SENSITIVITY:") ;
+//      SERIAL_ECHO(fine_fsr);
       prepare_move_raw();
       st_synchronize();
+//      SERIAL_ECHO(", z :") ;
+//     SERIAL_PROTOCOL_F(current_position[Z_AXIS], 4);
+//      SERIAL_ECHOLN("") ;
+     
     }
   #else
     enable_endstops(true);
@@ -1276,7 +1284,7 @@ boolean endstop_print_surface_cal(float z_offset, boolean viewonly) {
     float largestv=-99;
     float afteradjusttop=-99.0, absafteradjusttop ;
     float difft=0.0;
-    int z_before=40 ;
+    int z_before=35 ;
     boolean isallequal = false ;
     
     for (int xypos = 0; xypos <= 3; xypos++) {
@@ -1301,8 +1309,9 @@ boolean endstop_print_surface_cal(float z_offset, boolean viewonly) {
     SERIAL_PROTOCOL_F(smallestv,4) ;
     SERIAL_ECHO(", max : ");
     SERIAL_PROTOCOL_F(largestv,4) ;	SERIAL_ECHOLN("")  ;
-    if ( (xyzendstopdiff[0] == xyzendstopdiff[1] ) and (xyzendstopdiff[1] == xyzendstopdiff[2]) ) {
-      SERIAL_ECHOLN(" All EQUAL, PERFECT !! ") ;
+    if ( abs((int(largestv*100) - int(smallestv*100)) < 0.05 ) 
+          ) {
+      SERIAL_ECHOLN("Almost All EQUAL... ") ;
       isallequal = true ;
     }
     if (!viewonly and !isallequal) {
@@ -1316,28 +1325,13 @@ boolean endstop_print_surface_cal(float z_offset, boolean viewonly) {
         SERIAL_PROTOCOLPGM(", endstop changed from : ");
         SERIAL_PROTOCOL_F(endstop_adj[axis],4);
         SERIAL_PROTOCOLPGM(" to : ");
-        // just reduce to 0... not good as....
-        // endstop_adj[axis] = endstop_adj[axis] -  xyzendstopdiff[axis] ;
-        
+      
         endstop_adj[axis] = endstop_adj[axis] + difft ;
         SERIAL_PROTOCOL_F(endstop_adj[axis],4);
         SERIAL_ECHOLN("");
         afteradjusttop=max(afteradjusttop,endstop_adj[axis]) ;
       }
-      //
-      //SERIAL_PROTOCOLPGM("Final Adjust : "); 
-      //for (int axis = 0; axis <= 2; axis++) {          
-      //  if (afteradjusttop > 0) 
-      //      endstop_adj[axis] = endstop_adj[axis] - afteradjusttop ; // lower the endstop to he top-est one 
-      //  else {
-      //      absafteradjusttop = abs(afteradjusttop) ;
-      //      endstop_adj[axis] = endstop_adj[axis] + absafteradjusttop ; // lower the endstop to he top-est one 
-      //  }
-          
-      //  SERIAL_PROTOCOL_F(endstop_adj[axis],4);  
-      //  SERIAL_ECHO(",");
-      //}
-      //SERIAL_ECHOLN("") ;
+
     }
     return isallequal ;
 }
@@ -1892,6 +1886,8 @@ void process_commands()
 
       clean_up_after_endstop_move();
 
+      feedrate = homing_feedrate[Z_AXIS];
+      
       break;
       
     case 32: // G32 XYZ Tower automatic Z probe.
@@ -1917,6 +1913,9 @@ void process_commands()
       
 //	  SERIAL_PROTOCOLPGM("G30 Finished");
       home_delta_axis() ;
+      
+      feedrate = homing_feedrate[Z_AXIS];
+      
       break;
 	  
     case 90: // G90
