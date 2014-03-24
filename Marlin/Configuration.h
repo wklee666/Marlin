@@ -446,7 +446,9 @@ const bool Z_MAX_ENDSTOP_INVERTING = false; // set to true to invert the logic o
   // Force Sensing Resistors under the print surface, wired to heated bed thermistor input.
   // Autolevel by measuring how much the hotend is pushing down, without separate Z probe.
   #define FSR_BED_LEVELING
-  #define FSR_SENSITIVITY 10
+  #define FSR_SENSITIVITY 4
+  #define FSR_ENDSTOP_PROBE_T 6
+  #define FSR_Z_PROBE_RAISE 5
   
 #endif
 
