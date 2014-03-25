@@ -120,7 +120,7 @@
 // Horizontal distance bridged by diagonal push rods when effector is centered.
 //#define DELTA_RADIUS (DELTA_SMOOTH_ROD_OFFSET-DELTA_EFFECTOR_OFFSET-DELTA_CARRIAGE_OFFSET)
 // my kossel Correct Val
-#define DELTA_RADIUS 105.89
+#define DELTA_RADIUS 105.3
 
 // Print surface diameter/2 minus unreachable space (avoid collisions with vertical towers).
 #define DELTA_PRINTABLE_RADIUS 80.0

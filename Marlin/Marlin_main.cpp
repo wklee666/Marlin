@@ -204,8 +204,8 @@ float volumetric_multiplier[EXTRUDERS] = {1.0
 float current_position[NUM_AXIS] = { 0.0, 0.0, 0.0, 0.0 };
 float add_homeing[3]={0,0,0};
 #ifdef DELTA
-float xyzendstopdiff[4] = {0,0,0,0};
-float endstop_adj[3]={0,0,0};
+float xyzendstopdiff[4] = {0.0,0.0,0.0,0.0};
+float endstop_adj[3]={0.0,0.0,0.0};
 #endif
 float min_pos[3] = { X_MIN_POS, Y_MIN_POS, Z_MIN_POS };
 float max_pos[3] = { X_MAX_POS, Y_MAX_POS, Z_MAX_POS };
@@ -1220,7 +1220,7 @@ static void extrapolate_unprobed_bed_level() {
 static void print_bed_level() {
   for (int y = 0; y < ACCURATE_BED_LEVELING_POINTS; y++) {
     for (int x = 0; x < ACCURATE_BED_LEVELING_POINTS; x++) {
-      SERIAL_PROTOCOL_F(bed_level[x][y], 2);
+      SERIAL_PROTOCOL_F(bed_level[x][y], 3);
       SERIAL_PROTOCOLPGM(" ");
     }
     SERIAL_ECHOLN("");
@@ -1331,7 +1331,7 @@ boolean endstop_print_surface_cal(float z_offset, boolean viewonly) {
     float largestv=-99;
     float afteradjusttop=-99.0, absafteradjusttop ;
     float difft=0.0;
-    int z_before=40 ;
+    float z_before=40 ;
     float saved_endstop_adj[3];
     
     boolean isallequal = false ;
@@ -1339,12 +1339,12 @@ boolean endstop_print_surface_cal(float z_offset, boolean viewonly) {
     saved_endstop_adj[Y_AXIS] = endstop_adj[Y_AXIS];
     saved_endstop_adj[Z_AXIS] = endstop_adj[Z_AXIS];    
     for (int xypos = 0; xypos <= 3; xypos++) {
-   
-    destination[X_AXIS] = default_xyztower_probe_pos[xypos][0] - X_PROBE_OFFSET_FROM_EXTRUDER ;
-      destination[Y_AXIS] = default_xyztower_probe_pos[xypos][1] - Y_PROBE_OFFSET_FROM_EXTRUDER ;
 		
       // xyzendstopdiff[xypos] = probe_pt(destination[X_AXIS], destination[Y_AXIS], z_before) ;
-      xyzendstopdiff[xypos] = probe_pt_r(destination[X_AXIS], destination[Y_AXIS], z_before, FSR_Z_PROBE_RAISE) ;
+      xyzendstopdiff[xypos] = probe_pt_r(default_xyztower_probe_pos[xypos][0], 
+            default_xyztower_probe_pos[xypos][1], 
+            z_before, 
+            FSR_Z_PROBE_RAISE) ;
       SERIAL_ECHOLN("") ;
       SERIAL_PROTOCOL_F(default_xyztower_probe_pos[xypos][0], 3);
       SERIAL_ECHO(",");
@@ -1923,6 +1923,7 @@ void process_commands()
 #endif // ENABLE_AUTO_BED_LEVELING
 
     case 31: // G31 XYZ Tower automatic Z probe.
+      {
       int loopcount, iterations ;
       boolean allequal ;
       
@@ -1981,7 +1982,7 @@ void process_commands()
       feedrate = homing_feedrate[Z_AXIS];
       
       break;
-      
+      }
     case 32: // G32 XYZ Tower automatic Z probe.
       st_synchronize();
        // make sure the bed_level_rotation_matrix is identity or the planner will get it incorectly
