@@ -103,7 +103,7 @@
 // Make delta curves from many straight lines (linear interpolation).
 // This is a trade-off between visible corners (not enough segments)
 // and processor overload (too many expensive sqrt calls).
-#define DELTA_SEGMENTS_PER_SECOND 200
+#define DELTA_SEGMENTS_PER_SECOND 160
 
 // Center-to-center distance of the holes in the diagonal push rods.
 #define DELTA_DIAGONAL_ROD 215.65 // mm
@@ -119,10 +119,10 @@
 
 // Horizontal distance bridged by diagonal push rods when effector is centered.
 // #define DELTA_RADIUS (DELTA_SMOOTH_ROD_OFFSET-DELTA_EFFECTOR_OFFSET-DELTA_CARRIAGE_OFFSET)
-#define DELTA_RADIUS 106.08
+#define DELTA_RADIUS 105.62
 
 // Print surface diameter/2 minus unreachable space (avoid collisions with vertical towers).
-#define DELTA_PRINTABLE_RADIUS 75.0
+#define DELTA_PRINTABLE_RADIUS 75
 
 // Effective X/Y positions of the three vertical towers.
 #define SIN_60 0.8660254037844386
@@ -136,9 +136,6 @@
 
 // Diagonal rod squared
 #define DELTA_DIAGONAL_ROD_2 pow(DELTA_DIAGONAL_ROD,2)
-
-#define DEFAULT_XYZTOWER_PROBE_POS   {{-70, -45},{70, -45},{0, 80},{0,0}}
-#define FSR_Z_PROBE_RAISE 5
 
 //===========================================================================
 //=============================Thermal Settings  ============================
@@ -399,7 +396,7 @@ const bool Z_MAX_ENDSTOP_INVERTING = false; // set to true to invert the logic o
   #define XY_TRAVEL_SPEED 8000         // X and Y axis travel speed between probes, in mm/min
 
   #define Z_RAISE_BEFORE_PROBING 5  //How much the extruder will be raised before traveling to the first probing point.
-  #define Z_RAISE_BETWEEN_PROBINGS 1  //How much the extruder will be raised when traveling from between next probing points
+  #define Z_RAISE_BETWEEN_PROBINGS 5  //How much the extruder will be raised when traveling from between next probing points
   #define Z_RAISE_AFTER_PROBING 50  //How much the extruder will be raised after the last probing point.
 
 
@@ -446,6 +443,11 @@ const bool Z_MAX_ENDSTOP_INVERTING = false; // set to true to invert the logic o
   // Force Sensing Resistors under the print surface, wired to heated bed thermistor input.
   // Autolevel by measuring how much the hotend is pushing down, without separate Z probe.
   #define FSR_BED_LEVELING
+  
+  # Endstop autocal 
+  #define DEFAULT_XYZTOWER_PROBE_POS   {{-70, -45},{70, -45},{0, 80},{0,0}}
+  #define REPEAT_PROBE_PRECISION	0.02
+  
 #endif
 
 
@@ -457,7 +459,7 @@ const bool Z_MAX_ENDSTOP_INVERTING = false; // set to true to invert the logic o
 // For deltabots this means top and center of the Cartesian print volume.
 #define MANUAL_X_HOME_POS 0
 #define MANUAL_Y_HOME_POS 0
-#define MANUAL_Z_HOME_POS 240  // For delta: Distance between nozzle and print surface after homing.
+#define MANUAL_Z_HOME_POS 240.00  // For delta: Distance between nozzle and print surface after homing.
 
 //// MOVEMENT SETTINGS
 #define NUM_AXIS 4 // The axis order in all axis related arrays is X, Y, Z, E
@@ -487,7 +489,7 @@ const bool Z_MAX_ENDSTOP_INVERTING = false; // set to true to invert the logic o
 // The speed change that does not require acceleration (i.e. the software might assume it can be done instantaneously)
 #define DEFAULT_XYJERK                20.0    // (mm/sec)
 #define DEFAULT_ZJERK                 20.0    // (mm/sec)
-#define DEFAULT_EJERK                 20.0    // (mm/sec)
+#define DEFAULT_EJERK                 15.0    // (mm/sec)
 
 //===========================================================================
 //=============================Additional Features===========================
