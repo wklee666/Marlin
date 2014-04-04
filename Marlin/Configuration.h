@@ -103,7 +103,7 @@
 // Make delta curves from many straight lines (linear interpolation).
 // This is a trade-off between visible corners (not enough segments)
 // and processor overload (too many expensive sqrt calls).
-#define DELTA_SEGMENTS_PER_SECOND 160
+#define DELTA_SEGMENTS_PER_SECOND 120
 
 // Center-to-center distance of the holes in the diagonal push rods.
 #define DELTA_DIAGONAL_ROD 215.65 // mm
@@ -119,10 +119,10 @@
 
 // Horizontal distance bridged by diagonal push rods when effector is centered.
 // #define DELTA_RADIUS (DELTA_SMOOTH_ROD_OFFSET-DELTA_EFFECTOR_OFFSET-DELTA_CARRIAGE_OFFSET)
-#define DELTA_RADIUS 105.62
+#define DELTA_RADIUS 105.32
 
 // Print surface diameter/2 minus unreachable space (avoid collisions with vertical towers).
-#define DELTA_PRINTABLE_RADIUS 75
+#define DELTA_PRINTABLE_RADIUS 75.00
 
 // Effective X/Y positions of the three vertical towers.
 #define SIN_60 0.8660254037844386
@@ -388,12 +388,12 @@ const bool Z_MAX_ENDSTOP_INVERTING = false; // set to true to invert the logic o
   // these are the offsets to the probe relative to the extruder tip (Hotend - Probe)
   #define X_PROBE_OFFSET_FROM_EXTRUDER 0.0
   #define Y_PROBE_OFFSET_FROM_EXTRUDER 0.0
-  #define Z_PROBE_OFFSET_FROM_EXTRUDER 0.1  // Increase this if the first layer is too thin.
+  #define Z_PROBE_OFFSET_FROM_EXTRUDER 0.05  // Increase this if the first layer is too thin.
 
   #define Z_RAISE_BEFORE_HOMING 4       // (in mm) Raise Z before homing (G28) for Probe Clearance.
                                         // Be sure you have this distance over your Z_MAX_POS in case
 
-  #define XY_TRAVEL_SPEED 8000         // X and Y axis travel speed between probes, in mm/min
+  #define XY_TRAVEL_SPEED 6000         // X and Y axis travel speed between probes, in mm/min
 
   #define Z_RAISE_BEFORE_PROBING 5  //How much the extruder will be raised before traveling to the first probing point.
   #define Z_RAISE_BETWEEN_PROBINGS 5  //How much the extruder will be raised when traveling from between next probing points
@@ -444,9 +444,9 @@ const bool Z_MAX_ENDSTOP_INVERTING = false; // set to true to invert the logic o
   // Autolevel by measuring how much the hotend is pushing down, without separate Z probe.
   #define FSR_BED_LEVELING
   
-  # Endstop autocal 
-  #define DEFAULT_XYZTOWER_PROBE_POS   {{-70, -45},{70, -45},{0, 80},{0,0}}
-  #define REPEAT_PROBE_PRECISION	0.02
+  // Endstop autocal 
+  #define DEFAULT_XYZTOWER_PROBE_POS   {{-SIN_60 * DELTA_PRINTABLE_RADIUS, -COS_60 * DELTA_PRINTABLE_RADIUS}, {SIN_60 * DELTA_PRINTABLE_RADIUS, -COS_60 * DELTA_PRINTABLE_RADIUS},{0, DELTA_PRINTABLE_RADIUS},{0,0}}
+  #define REPEAT_PROBE_PRECISION	0.01
   
 #endif
 
@@ -473,7 +473,7 @@ const bool Z_MAX_ENDSTOP_INVERTING = false; // set to true to invert the logic o
 #define XYZ_PULLEY_TEETH 17
 #define XYZ_STEPS (XYZ_FULL_STEPS_PER_ROTATION * XYZ_MICROSTEPS / double(XYZ_BELT_PITCH) / double(XYZ_PULLEY_TEETH))
 
-#define DEFAULT_AXIS_STEPS_PER_UNIT   {100, 100, 100, 452.06}
+#define DEFAULT_AXIS_STEPS_PER_UNIT   {100.0, 100.0, 100.0, 452.06}
 #define DEFAULT_MAX_FEEDRATE          {200, 200, 200, 200}    // (mm/sec)
 #define DEFAULT_MAX_ACCELERATION      {9000,9000,9000,9000}    // X, Y, Z, E maximum start speed for accelerated moves. E default values are good for skeinforge 40+, for older versions raise them a lot.
 

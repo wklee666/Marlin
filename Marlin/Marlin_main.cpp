@@ -1331,12 +1331,12 @@ void home_delta_axis() {
 boolean endstop_print_surface_cal(float z_offset, boolean viewonly) {
     float smallestv=10.0 ;
     float largestv=-99;
-    float afteradjusttop=-99.0, absafteradjusttop ;
+    float afteradjusttop=-99.0, maxafteradjusttop ;
     float difft=0.0, zavg;
-    float z_before=40 ;
+    float z_before=40.0 ;
     float saved_endstop_adj[3];
     
-    boolean AllTowerZEqual = false ;
+    boolean calfinished = false ;
     saved_endstop_adj[X_AXIS] = endstop_adj[X_AXIS];
     saved_endstop_adj[Y_AXIS] = endstop_adj[Y_AXIS];
     saved_endstop_adj[Z_AXIS] = endstop_adj[Z_AXIS];    
@@ -1347,13 +1347,12 @@ boolean endstop_print_surface_cal(float z_offset, boolean viewonly) {
             default_xyztower_probe_pos[xypos][1], 
             z_before, 
             Z_RAISE_BEFORE_PROBING) ;
-      SERIAL_ECHOLN("") ;
       SERIAL_PROTOCOL_F(default_xyztower_probe_pos[xypos][0], 3);
-      SERIAL_ECHO(",");
+      SERIAL_PROTOCOLPGM(",");
       SERIAL_PROTOCOL_F(default_xyztower_probe_pos[xypos][1], 3);
-      SERIAL_ECHO(" : ");
+      SERIAL_PROTOCOLPGM(" : ");
       SERIAL_PROTOCOL_F(xyzTowerZ[xypos],3) ;
-      SERIAL_ECHOLN("");
+      SERIAL_PROTOCOLPGM("\n");
       if (xypos <= 2) {
         smallestv=min(smallestv,xyzTowerZ[xypos]) ;
         largestv=max(largestv,xyzTowerZ[xypos]) ;
@@ -1365,64 +1364,74 @@ boolean endstop_print_surface_cal(float z_offset, boolean viewonly) {
       
     }
 
-    SERIAL_ECHO("min : ");
+    SERIAL_PROTOCOLPGM("min : ");
     SERIAL_PROTOCOL_F(smallestv,3) ;
-    SERIAL_ECHO(", max : ");
+    SERIAL_PROTOCOLPGM(", max : ");
     SERIAL_PROTOCOL_F(largestv,3) ;	
-    SERIAL_ECHO(", Difference : ");
-    SERIAL_PROTOCOL_F(largestv - smallestv,3) ;	SERIAL_ECHOLN("")  ;
+    SERIAL_PROTOCOLPGM(", Difference : ");
+    SERIAL_PROTOCOL_F(largestv - smallestv,3) ;	SERIAL_PROTOCOLPGM("\n")  ;
     if ( (largestv - smallestv) <= REPEAT_PROBE_PRECISION ) {
       SERIAL_ECHOLN("All Z near Tower equal...\n") ;
-      SERIAL_ECHO(" -- Endstop Adjusted -- ");
-      SERIAL_ECHO("\nX Tower: ");
+      SERIAL_PROTOCOLPGM(" -- Endstop Adjusted -- ");
+      SERIAL_PROTOCOLPGM("\nX Tower: ");
       SERIAL_PROTOCOL_F(endstop_adj[0],3) ;
-      SERIAL_ECHO("\nY Tower: ");
+      SERIAL_PROTOCOLPGM("\nY Tower: ");
       SERIAL_PROTOCOL_F(endstop_adj[1],3) ;
-      SERIAL_ECHO("\nZ Tower: ");
+      SERIAL_PROTOCOLPGM("\nZ Tower: ");
       SERIAL_PROTOCOL_F(endstop_adj[2],3) ;
-      SERIAL_ECHO("\n -- Tower and Center Z -- ");      
-      SERIAL_ECHO("\nX Tower Z: ");
+      SERIAL_PROTOCOLPGM("\n -- Tower and Center Z -- ");      
+      SERIAL_PROTOCOLPGM("\nX Tower Z: ");
       SERIAL_PROTOCOL_F(xyzTowerZ[0],3) ;
-      SERIAL_ECHO("\nY Tower Z: ");
+      SERIAL_PROTOCOLPGM("\nY Tower Z: ");
       SERIAL_PROTOCOL_F(xyzTowerZ[1],3) ;
-      SERIAL_ECHO("\nZ Tower Z: ");
+      SERIAL_PROTOCOLPGM("\nZ Tower Z: ");
       SERIAL_PROTOCOL_F(xyzTowerZ[2],3) ;
-      SERIAL_ECHO("\nCenter Z: ");
+      SERIAL_PROTOCOLPGM("\nCenter Z: ");
       SERIAL_PROTOCOL_F(xyzTowerZ[3],3) ;     
-      SERIAL_ECHO("\n");        
-      AllTowerZEqual = true ;
+      SERIAL_PROTOCOLPGM("\nCenter to Tower Z diff: ");
+      SERIAL_PROTOCOL_F( xyzTowerZ[3] - ((xyzTowerZ[0] + xyzTowerZ[1] + xyzTowerZ[2])/3) ,3) ;           
+      SERIAL_PROTOCOLPGM("\n");        
+      calfinished = true ;
     }
 	// if All tower z equal, try to adjust radius
-//	if (AllTowerZEqual) {
+//	if (calfinished) {
 //		zavg=(xyzTowerZ[0]+xyzTowerZ[1]+xyzTowerZ[2])/3 ;
 //		rdiff = zavg - xyzTowerZ[3] ;
 //		if (rdiff > 0) 
 //	
 //	}
-    if (!viewonly and !AllTowerZEqual) {
-      for (int axis = 0; axis <= 2; axis++) {
-        smallestv = abs(smallestv);
-        difft = xyzTowerZ[axis] - largestv ;
+    if (!viewonly and !calfinished) {
+      for (int8_t axis = 0; axis <= 2; axis++) {
+        // method 1 : add the largest diff to make all tower z same (but z not zero)
+        // difft = xyzTowerZ[axis] - largestv ;
+        // method 2 : make all tower z tend to 0
+        difft = xyzTowerZ[axis] ;
         SERIAL_PROTOCOLPGM(" Axis : "); 
-        SERIAL_PROTOCOL_F(axis,1) ;
+        SERIAL_ECHO(axis_codes[axis]) ;
         SERIAL_PROTOCOLPGM(", diff is "); 
         SERIAL_PROTOCOL_F(difft,3);
         SERIAL_PROTOCOLPGM(", endstop changed from : ");
         SERIAL_PROTOCOL_F(endstop_adj[axis],3);
         SERIAL_PROTOCOLPGM(" to : ");
-      
-        endstop_adj[axis] = endstop_adj[axis] + difft ;
+        endstop_adj[axis] = endstop_adj[axis] - -(difft) ;
         SERIAL_PROTOCOL_F(endstop_adj[axis],3);
-        SERIAL_ECHOLN("");
+        SERIAL_PROTOCOLPGM("\n");
         afteradjusttop=max(afteradjusttop,endstop_adj[axis]) ;
       }
-      // Adjust the endstop to take effect
-      calculate_delta(current_position);
-      plan_set_position(delta[X_AXIS] - (endstop_adj[X_AXIS] - saved_endstop_adj[X_AXIS]) , delta[Y_AXIS] - (endstop_adj[Y_AXIS] - saved_endstop_adj[Y_AXIS]), delta[Z_AXIS] - (endstop_adj[Z_AXIS] - saved_endstop_adj[Z_AXIS]), current_position[E_AXIS]);
-  
+      
+      if (afteradjusttop > 0.5) {
+        SERIAL_PROTOCOLPGM("One of the endstop_adj offset > 0, means that the delta height is too large... I will stop now!! Please reduce the height at least ");
+        SERIAL_PROTOCOL_F(afteradjusttop,3);
+        SERIAL_PROTOCOLPGM("\n");
+        calfinished = true ;
+      }else {
+        // Adjust the endstop to take effect
+        calculate_delta(current_position);
+        plan_set_position(delta[X_AXIS] - (endstop_adj[X_AXIS] - saved_endstop_adj[X_AXIS]) , delta[Y_AXIS] - (endstop_adj[Y_AXIS] - saved_endstop_adj[Y_AXIS]), delta[Z_AXIS] - (endstop_adj[Z_AXIS] - saved_endstop_adj[Z_AXIS]), current_position[E_AXIS]);
+      }
     }
 
-    return AllTowerZEqual ;
+    return calfinished ;
 }
 
 
@@ -1895,16 +1904,16 @@ void process_commands()
               if(code_value_long() != 0) {
                 gotox=code_value();
               }
-            }
+            } else gotox=0 ;
 
             if(code_seen(axis_codes[Y_AXIS])) {
               if(code_value_long() != 0) {
                 gotoy=code_value();
               }
-            }
+            } else gotoy=0 ;
         
-            do_blocking_move_to(current_position[X_AXIS], current_position[Y_AXIS], Z_RAISE_AFTER_PROBING);     
-            do_blocking_move_to(gotox, gotoy, Z_RAISE_BETWEEN_PROBINGS);   
+            do_blocking_move_to(current_position[X_AXIS], current_position[Y_AXIS], Z_RAISE_BEFORE_PROBING);     
+            // do_blocking_move_to(gotox, gotoy, Z_RAISE_BETWEEN_PROBINGS);   
             feedrate = homing_feedrate[Z_AXIS];
             
             run_z_probe((code_seen('T')?true:false));
@@ -1928,7 +1937,7 @@ void process_commands()
     case 31: // G31 XYZ Tower automatic Z probe.
       {
       int loopcount, iterations ;
-      boolean allequal ;
+      boolean finished ;
       
       st_synchronize();
        // make sure the bed_level_rotation_matrix is identity or the planner will get it incorectly
@@ -1940,7 +1949,7 @@ void process_commands()
 
       setup_for_endstop_move();
 
-      allequal = false ;
+      finished = false ;
       iterations = 10;   
       loopcount = 1 ;
       
@@ -1958,11 +1967,11 @@ void process_commands()
       do {
         SERIAL_ECHO("iterations : ");
         SERIAL_ECHOLN(loopcount);
-        allequal = endstop_print_surface_cal(Z_PROBE_OFFSET_FROM_EXTRUDER+(code_seen(axis_codes[Z_AXIS]) ? code_value() : 0.0),false) ;
+        finished = endstop_print_surface_cal(Z_PROBE_OFFSET_FROM_EXTRUDER+(code_seen(axis_codes[Z_AXIS]) ? code_value() : 0.0),false) ;
         loopcount ++ ;
         if ( (loopcount % 3 ) > 1 ) home_delta_axis() ;
 
-      } while((loopcount <= iterations) and !allequal ) ;
+      } while((loopcount <= iterations) and !finished ) ;
 
       home_delta_axis() ;
 
