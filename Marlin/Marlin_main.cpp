@@ -1370,6 +1370,9 @@ boolean endstop_print_surface_cal(float z_offset, boolean viewonly) {
     SERIAL_PROTOCOL_F(largestv,3) ;	
     SERIAL_PROTOCOLPGM(", Difference : ");
     SERIAL_PROTOCOL_F(largestv - smallestv,3) ;	SERIAL_PROTOCOLPGM("\n")  ;
+    SERIAL_PROTOCOLPGM("\nCenter to Tower Z diff: ");
+    SERIAL_PROTOCOL_F( xyzTowerZ[3] - ((xyzTowerZ[0] + xyzTowerZ[1] + xyzTowerZ[2])/3) ,3) ;           
+    SERIAL_PROTOCOLPGM("\n");        
     if ( (largestv - smallestv) <= REPEAT_PROBE_PRECISION ) {
       SERIAL_ECHOLN("All Z near Tower equal...\n") ;
       SERIAL_PROTOCOLPGM(" -- Endstop Adjusted -- ");
@@ -1388,8 +1391,8 @@ boolean endstop_print_surface_cal(float z_offset, boolean viewonly) {
       SERIAL_PROTOCOL_F(xyzTowerZ[2],3) ;
       SERIAL_PROTOCOLPGM("\nCenter Z: ");
       SERIAL_PROTOCOL_F(xyzTowerZ[3],3) ;     
-      SERIAL_PROTOCOLPGM("\nCenter to Tower Z diff: ");
-      SERIAL_PROTOCOL_F( xyzTowerZ[3] - ((xyzTowerZ[0] + xyzTowerZ[1] + xyzTowerZ[2])/3) ,3) ;           
+//      SERIAL_PROTOCOLPGM("\nCenter to Tower Z diff: ");
+//      SERIAL_PROTOCOL_F( xyzTowerZ[3] - ((xyzTowerZ[0] + xyzTowerZ[1] + xyzTowerZ[2])/3) ,3) ;           
       SERIAL_PROTOCOLPGM("\n");        
       calfinished = true ;
     }
@@ -1894,26 +1897,26 @@ void process_commands()
     case 30: // G30 Single Z Probe
         {
             // engage_z_probe(); // Engage Z Servo endstop if available
-            float gotox, gotoy ;
+            float gotox=0, gotoy=0 ;
             st_synchronize();
             // TODO: make sure the bed_level_rotation_matrix is identity or the planner will get set incorectly
             setup_for_endstop_move();
 
             if(code_seen(axis_codes[X_AXIS]))
             {
-              if(code_value_long() != 0) {
+             if(code_value_long() != 0) {
                 gotox=code_value();
               }
-            } else gotox=0 ;
+            } 
 
             if(code_seen(axis_codes[Y_AXIS])) {
               if(code_value_long() != 0) {
                 gotoy=code_value();
               }
-            } else gotoy=0 ;
+            }
         
-            do_blocking_move_to(current_position[X_AXIS], current_position[Y_AXIS], Z_RAISE_BEFORE_PROBING);     
-            // do_blocking_move_to(gotox, gotoy, Z_RAISE_BETWEEN_PROBINGS);   
+            do_blocking_move_to(current_position[X_AXIS], current_position[Y_AXIS], Z_RAISE_BEFORE_PROBING+20);     
+            do_blocking_move_to(gotox, gotoy, Z_RAISE_BETWEEN_PROBINGS);   
             feedrate = homing_feedrate[Z_AXIS];
             
             run_z_probe((code_seen('T')?true:false));
