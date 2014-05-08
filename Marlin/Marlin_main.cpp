@@ -199,7 +199,13 @@ float volumetric_multiplier[EXTRUDERS] = {1.0
 float current_position[NUM_AXIS] = { 0.0, 0.0, 0.0, 0.0 };
 float add_homeing[3]={0,0,0};
 #ifdef DELTA
-float endstop_adj[3]={0,0,0};
+  float delta_tower1_x, delta_tower1_y;
+  float delta_tower2_x, delta_tower2_y;
+  float delta_tower3_x, delta_tower3_y;
+  float DELTA_DIAGONAL_ROD_2;
+  float endstop_adj[3]={0,0,0};
+  float delta_radius; // = DEFAULT_delta_radius;
+  float delta_diagonal_rod; // = DEFAULT_DELTA_DIAGONAL_ROD;
 #endif
 float min_pos[3] = { X_MIN_POS, Y_MIN_POS, Z_MIN_POS };
 float max_pos[3] = { X_MAX_POS, Y_MAX_POS, Z_MAX_POS };
@@ -292,7 +298,6 @@ unsigned long starttime=0;
 unsigned long stoptime=0;
 
 static uint8_t tmp_extruder;
-
 
 bool Stopped=false;
 
@@ -885,6 +890,20 @@ static void set_bed_level_equation(float z_at_xLeft_yFront, float z_at_xRight_yF
 }
 #endif // ACCURATE_BED_LEVELING
 
+void set_delta_constants()
+{
+ 
+  DELTA_DIAGONAL_ROD_2 = pow(delta_diagonal_rod,2);
+  
+  delta_tower1_x =(delta_radius + DELTA_TOWER1_RAD_ADJ) * cos((210 + DELTA_TOWER1_ADJ) * PI/180); // front left tower
+  delta_tower1_y =(delta_radius + DELTA_TOWER1_RAD_ADJ) * sin((210 + DELTA_TOWER1_ADJ) * PI/180); // front right tower
+  delta_tower2_x =(delta_radius + DELTA_TOWER2_RAD_ADJ) * cos((330 + DELTA_TOWER2_ADJ) * PI/180); // front right tower
+  delta_tower2_y =(delta_radius + DELTA_TOWER2_RAD_ADJ) * sin((330 + DELTA_TOWER2_ADJ) * PI/180); 
+  delta_tower3_x =(delta_radius + DELTA_TOWER3_RAD_ADJ) * cos((90 + DELTA_TOWER3_ADJ) * PI/180);  // back middle tower
+  delta_tower3_y =(delta_radius + DELTA_TOWER3_RAD_ADJ) * sin((90 + DELTA_TOWER3_ADJ) * PI/180); 
+
+}
+
 static void run_z_probe(boolean afteradj) {
     plan_bed_level_matrix.set_to_identity();
 
@@ -1358,10 +1377,6 @@ boolean endstop_print_surface_cal(float z_offset, boolean viewonly) {
         largestv=max(largestv,xyzTowerZ[xypos]) ;
       }
       
-      // Move to better position b4 probe again
-      //do_blocking_move_to(current_position[X_AXIS], current_position[Y_AXIS], 50);
-      //st_synchronize() ;
-      
     }
 
     SERIAL_PROTOCOLPGM("min : ");
@@ -1370,11 +1385,11 @@ boolean endstop_print_surface_cal(float z_offset, boolean viewonly) {
     SERIAL_PROTOCOL_F(largestv,3) ;	
     SERIAL_PROTOCOLPGM(", Difference : ");
     SERIAL_PROTOCOL_F(largestv - smallestv,3) ;	SERIAL_PROTOCOLPGM("\n")  ;
-    SERIAL_PROTOCOLPGM("\nCenter to Tower Z diff: ");
+    SERIAL_PROTOCOLPGM("\nCenter to Tower z diff: ");
     SERIAL_PROTOCOL_F( xyzTowerZ[3] - ((xyzTowerZ[0] + xyzTowerZ[1] + xyzTowerZ[2])/3) ,3) ;           
     SERIAL_PROTOCOLPGM("\n");        
     if ( (largestv - smallestv) <= REPEAT_PROBE_PRECISION ) {
-      SERIAL_ECHOLN("All Z near Tower equal...\n") ;
+      SERIAL_ECHOLN("All z near Tower equal...\n") ;
       SERIAL_PROTOCOLPGM(" -- Endstop Adjusted -- ");
       SERIAL_PROTOCOLPGM("\nX Tower: ");
       SERIAL_PROTOCOL_F(endstop_adj[0],3) ;
@@ -1382,14 +1397,14 @@ boolean endstop_print_surface_cal(float z_offset, boolean viewonly) {
       SERIAL_PROTOCOL_F(endstop_adj[1],3) ;
       SERIAL_PROTOCOLPGM("\nZ Tower: ");
       SERIAL_PROTOCOL_F(endstop_adj[2],3) ;
-      SERIAL_PROTOCOLPGM("\n -- Tower and Center Z -- ");      
-      SERIAL_PROTOCOLPGM("\nX Tower Z: ");
+      SERIAL_PROTOCOLPGM("\n -- Tower and Center z -- ");      
+      SERIAL_PROTOCOLPGM("\nX Tower z: ");
       SERIAL_PROTOCOL_F(xyzTowerZ[0],3) ;
-      SERIAL_PROTOCOLPGM("\nY Tower Z: ");
+      SERIAL_PROTOCOLPGM("\nY Tower z: ");
       SERIAL_PROTOCOL_F(xyzTowerZ[1],3) ;
-      SERIAL_PROTOCOLPGM("\nZ Tower Z: ");
+      SERIAL_PROTOCOLPGM("\nZ Tower z: ");
       SERIAL_PROTOCOL_F(xyzTowerZ[2],3) ;
-      SERIAL_PROTOCOLPGM("\nCenter Z: ");
+      SERIAL_PROTOCOLPGM("\nCenter z: ");
       SERIAL_PROTOCOL_F(xyzTowerZ[3],3) ;     
 //      SERIAL_PROTOCOLPGM("\nCenter to Tower Z diff: ");
 //      SERIAL_PROTOCOL_F( xyzTowerZ[3] - ((xyzTowerZ[0] + xyzTowerZ[1] + xyzTowerZ[2])/3) ,3) ;           
@@ -1405,10 +1420,7 @@ boolean endstop_print_surface_cal(float z_offset, boolean viewonly) {
 //	}
     if (!viewonly and !calfinished) {
       for (int8_t axis = 0; axis <= 2; axis++) {
-        // method 1 : add the largest diff to make all tower z same (but z not zero)
-        // difft = xyzTowerZ[axis] - largestv ;
-        // method 2 : make all tower z tend to 0
-        difft = xyzTowerZ[axis] ;
+        difft = xyzTowerZ[axis] ; 
         SERIAL_PROTOCOLPGM(" Axis : "); 
         SERIAL_ECHO(axis_codes[axis]) ;
         SERIAL_PROTOCOLPGM(", diff is "); 
@@ -1416,7 +1428,7 @@ boolean endstop_print_surface_cal(float z_offset, boolean viewonly) {
         SERIAL_PROTOCOLPGM(", endstop changed from : ");
         SERIAL_PROTOCOL_F(endstop_adj[axis],3);
         SERIAL_PROTOCOLPGM(" to : ");
-        endstop_adj[axis] = endstop_adj[axis] - -(difft) ;
+        endstop_adj[axis] += difft/1.05 ; // try RichC method
         SERIAL_PROTOCOL_F(endstop_adj[axis],3);
         SERIAL_PROTOCOLPGM("\n");
         afteradjusttop=max(afteradjusttop,endstop_adj[axis]) ;
@@ -2741,6 +2753,14 @@ void process_commands()
       {
         if(code_seen(axis_codes[i])) endstop_adj[i] = code_value();
       }
+           if (code_seen('R')) {
+           delta_radius = code_value();
+           set_delta_constants();
+         }
+           if (code_seen('D')) {
+             delta_diagonal_rod = code_value();
+             set_delta_constants();
+         }      
       break;
     #endif
     #ifdef FWRETRACT
@@ -3571,18 +3591,18 @@ void clamp_to_software_endstops(float target[3])
 
 #ifdef DELTA
 void calculate_delta(float cartesian[3])
-{
+{ 
   delta[X_AXIS] = sqrt(DELTA_DIAGONAL_ROD_2
-                       - sq(DELTA_TOWER1_X-cartesian[X_AXIS])
-                       - sq(DELTA_TOWER1_Y-cartesian[Y_AXIS])
+                       - sq(delta_tower1_x-cartesian[X_AXIS])
+                       - sq(delta_tower1_y-cartesian[Y_AXIS])
                        ) + cartesian[Z_AXIS];
   delta[Y_AXIS] = sqrt(DELTA_DIAGONAL_ROD_2
-                       - sq(DELTA_TOWER2_X-cartesian[X_AXIS])
-                       - sq(DELTA_TOWER2_Y-cartesian[Y_AXIS])
+                       - sq(delta_tower2_x-cartesian[X_AXIS])
+                       - sq(delta_tower2_y-cartesian[Y_AXIS])
                        ) + cartesian[Z_AXIS];
   delta[Z_AXIS] = sqrt(DELTA_DIAGONAL_ROD_2
-                       - sq(DELTA_TOWER3_X-cartesian[X_AXIS])
-                       - sq(DELTA_TOWER3_Y-cartesian[Y_AXIS])
+                       - sq(delta_tower3_x-cartesian[X_AXIS])
+                       - sq(delta_tower3_y-cartesian[Y_AXIS])
                        ) + cartesian[Z_AXIS];
   /*
   SERIAL_ECHOPGM("cartesian x="); SERIAL_ECHO(cartesian[X_AXIS]);

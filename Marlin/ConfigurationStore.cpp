@@ -59,6 +59,8 @@ void Config_StoreSettings()
   EEPROM_WRITE_VAR(i,add_homeing);
   #ifdef DELTA
   EEPROM_WRITE_VAR(i,endstop_adj);
+  EEPROM_WRITE_VAR(i,delta_radius);
+  EEPROM_WRITE_VAR(i,delta_diagonal_rod);
   #endif
   #ifndef ULTIPANEL
   int plaPreheatHotendTemp = PLA_PREHEAT_HOTEND_TEMP, plaPreheatHPBTemp = PLA_PREHEAT_HPB_TEMP, plaPreheatFanSpeed = PLA_PREHEAT_FAN_SPEED;
@@ -151,12 +153,16 @@ void Config_PrintSettings()
     SERIAL_ECHOLN("");
 #ifdef DELTA
     SERIAL_ECHO_START;
-    SERIAL_ECHOLNPGM("Endstop adjustement (mm):");
+    SERIAL_ECHOLNPGM("Endstop adjustment (mm):");
     SERIAL_ECHO_START;
     SERIAL_ECHOPAIR("  M666 X",endstop_adj[0] );
     SERIAL_ECHOPAIR(" Y" ,endstop_adj[1] );
     SERIAL_ECHOPAIR(" Z" ,endstop_adj[2] );
     SERIAL_ECHOLN("");
+    SERIAL_ECHOPAIR(" R" ,delta_radius);
+    SERIAL_ECHOPAIR(" D" ,delta_diagonal_rod);
+    SERIAL_ECHOLN("");
+    
 #endif
 #ifdef PIDTEMP
     SERIAL_ECHO_START;
@@ -200,6 +206,10 @@ void Config_RetrieveSettings()
         EEPROM_READ_VAR(i,add_homeing);
         #ifdef DELTA
         EEPROM_READ_VAR(i,endstop_adj);
+        EEPROM_READ_VAR(i,delta_radius);
+        EEPROM_READ_VAR(i,delta_diagonal_rod);
+        if (delta_radius<=10) { delta_radius = DEFAULT_DELTA_RADIUS; }
+        if (delta_diagonal_rod<=10) { delta_diagonal_rod = DEFAULT_DELTA_DIAGONAL_ROD; }
         #endif
         #ifndef ULTIPANEL
         int plaPreheatHotendTemp, plaPreheatHPBTemp, plaPreheatFanSpeed;
@@ -228,6 +238,7 @@ void Config_RetrieveSettings()
 		updatePID();
         SERIAL_ECHO_START;
         SERIAL_ECHOLNPGM("Stored settings retrieved");
+         set_delta_constants() ;
     }
     else
     {
@@ -265,6 +276,9 @@ void Config_ResetDefault()
     add_homeing[0] = add_homeing[1] = add_homeing[2] = 0;
 #ifdef DELTA
     endstop_adj[0] = endstop_adj[1] = endstop_adj[2] = 0;
+    delta_radius = DEFAULT_DELTA_RADIUS;
+    delta_diagonal_rod = DEFAULT_DELTA_DIAGONAL_ROD;    
+    set_delta_constants();
 #endif
 #ifdef ULTIPANEL
     plaPreheatHotendTemp = PLA_PREHEAT_HOTEND_TEMP;

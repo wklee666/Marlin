@@ -210,7 +210,10 @@ extern float volumetric_multiplier[EXTRUDERS]; // reciprocal of cross-sectional 
 extern float current_position[NUM_AXIS] ;
 extern float add_homeing[3];
 #ifdef DELTA
+void set_delta_constants();
 extern float endstop_adj[3];
+extern float delta_radius;
+extern float delta_diagonal_rod;
 #endif
 extern float min_pos[3];
 extern float max_pos[3];
