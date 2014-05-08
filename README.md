@@ -17,7 +17,7 @@ New/Changed parameters in Configuration.h :
 New/Modified GCODE :
 
 * G30   - Probe 1 point at specified xy location, e.g. G30 X-45 Y40
-* G31   - Auto calibration XYZ Enstop, parameter A for max number of run time, default 1, e.g. G31 A10 will run max 10 time
+* G31   - Auto calibration XYZ Enstop, parameter A for max number of run times, default 1, e.g. G31 A10 will run max 10 times
 * G32   - Probe xyz and center, view only
   
 * M666  - Added D to change DIAGONAL_ROD and C to change Radius
