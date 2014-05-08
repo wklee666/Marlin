@@ -3,14 +3,14 @@ New/Changed parameters in Configuration.h :
 * DELTA_DIAGONAL_ROD  ->  DEFAULT_DELTA_DIAGONAL_ROD  - set default value only, can be changed by m666 Dxxx for which xxx is the new Diagonal Rod value
 * DELTA_RADIUS        ->  DEFAULT_DELTA_RADIUS        - set default value only, can be changed by m666 Cxxx for which xxx is the new Radius value
 * Tower and Tower Radius Adjustment (If you know it):
-   Tower distance Adjust
-   - DELTA_TOWER1_ADJ  0
-   - DELTA_TOWER2_ADJ  0
-   - DELTA_TOWER3_ADJ  0
-   Tower Radius Adjust
-   - DELTA_TOWER1_RAD_ADJ  0
-   - DELTA_TOWER2_RAD_ADJ  0
-   - DELTA_TOWER3_RAD_ADJ  0
+   *  Tower distance Adjust
+      - DELTA_TOWER1_ADJ  0
+      - DELTA_TOWER2_ADJ  0
+      - DELTA_TOWER3_ADJ  0
+   *  Tower Radius Adjust
+      - DELTA_TOWER1_RAD_ADJ  0
+      - DELTA_TOWER2_RAD_ADJ  0
+      - DELTA_TOWER3_RAD_ADJ  0
 * Z_RAISE_AFTER_PROBING 50    - How much the extruder will be raised after the last probing point.
 * DEFAULT_XYZTOWER_PROBE_POS  - XYZ Probe Position (base on calculated value, you may ignore it if no problem)
 * REPEAT_PROBE_PRECISION	    - precision of the repeated probe for one point
