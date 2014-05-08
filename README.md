@@ -14,11 +14,10 @@ New/Changed parameters in Configuration.h :
 * DEFAULT_XYZTOWER_PROBE_POS  - XYZ Probe Position (base on calculated value, you may ignore it if no problem)
 * REPEAT_PROBE_PRECISION	    - precision of the repeated probe for one point
 
-
 New/Modified GCODE :
 
-  G30   - Probe 1 point at specified xy location, e.g. G30 X-45 Y40
-  G31   - Auto calibration XYZ Enstop, parameter A for max number of run time, default 1, e.g. G31 A10 will run max 10 time
-  G32   - Probe xyz and center, view only
+* G30   - Probe 1 point at specified xy location, e.g. G30 X-45 Y40
+* G31   - Auto calibration XYZ Enstop, parameter A for max number of run time, default 1, e.g. G31 A10 will run max 10 time
+* G32   - Probe xyz and center, view only
   
-  M666  - Added D to change DIAGONAL_ROD and C to change Radius
+* M666  - Added D to change DIAGONAL_ROD and C to change Radius
