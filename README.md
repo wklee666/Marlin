@@ -1,7 +1,7 @@
 New/Changed parameters in Configuration.h :
 
 * DELTA_DIAGONAL_ROD  ->  DEFAULT_DELTA_DIAGONAL_ROD  - set default value only, can be changed by m666 Dxxx for which xxx is the new Diagonal Rod value
-* DELTA_RADIUS        ->  DEFAULT_DELTA_RADIUS        - set default value only, can be changed by m666 Cxxx for which xxx is the new Radius value
+* DELTA_RADIUS        ->  DEFAULT_DELTA_RADIUS        - set default value only, can be changed by m666 Rxxx for which xxx is the new Radius value
 * Tower and Tower Radius Adjustment (If you know it):
    *  Tower distance Adjust
       - DELTA_TOWER1_ADJ  0
@@ -21,4 +21,4 @@ New/Modified GCODE :
 * G31   - Auto calibration XYZ Enstop, parameter A for max number of run times, default 1, e.g. G31 A10 will run max 10 times
 * G32   - Probe xyz and center, view only
   
-* M666  - Added D to change DIAGONAL_ROD and C to change Radius
+* M666  - Added D to change DIAGONAL_ROD and R to change Radius

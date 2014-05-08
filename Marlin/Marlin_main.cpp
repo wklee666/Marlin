@@ -1984,7 +1984,7 @@ void process_commands()
         SERIAL_ECHOLN(loopcount);
         finished = endstop_print_surface_cal(Z_PROBE_OFFSET_FROM_EXTRUDER+(code_seen(axis_codes[Z_AXIS]) ? code_value() : 0.0),false) ;
         loopcount ++ ;
-        if ( (loopcount % 3 ) > 1 ) home_delta_axis() ;
+        // if ( (loopcount % 3 ) > 1 ) home_delta_axis() ;
 
       } while((loopcount <= iterations) and !finished ) ;
 
@@ -2760,7 +2760,21 @@ void process_commands()
            if (code_seen('D')) {
              delta_diagonal_rod = code_value();
              set_delta_constants();
-         }      
+         }   
+      if (code_seen('L')) {
+        SERIAL_ECHOPAIR("X (Endstop Adj): ",endstop_adj[0]);
+        SERIAL_ECHOLN("");
+        SERIAL_ECHOPAIR("Y (Endstop Adj): ",endstop_adj[1]);
+        SERIAL_ECHOLN("");
+	      SERIAL_ECHOPAIR("Z (Endstop Adj): ",endstop_adj[2]);
+        SERIAL_ECHOLN("");
+        SERIAL_ECHOPAIR("R (Delta Radius): ",delta_radius);
+        SERIAL_ECHOLN("");
+        SERIAL_ECHOPAIR("D (Diagonal Rod Length): ",delta_diagonal_rod);
+        SERIAL_ECHOLN("");
+        SERIAL_ECHOPAIR("H (Z-Height): ",max_pos[Z_AXIS]);
+        SERIAL_ECHOLN("");        
+      }
       break;
     #endif
     #ifdef FWRETRACT
